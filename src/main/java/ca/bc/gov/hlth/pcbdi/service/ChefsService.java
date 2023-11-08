@@ -54,9 +54,6 @@ public class ChefsService {
     @Value("${chefs.forms.reportingDates.apiKey}")
     private String reportingDatesApikey;
     
-    @Value("${user.token}")
-    private String userToken;
-    
     private String submissionpath = "forms/%s/submissions?deleted=false&draft=false";
     
     private String haSubmissionPath = submissionpath + "&fields=healthAuthority,communities";
@@ -129,9 +126,8 @@ public class ChefsService {
         // Technically a DELETE op shouldn't have a body so we have to use .method to allow it
         return chefsWebClient.delete()
                 .uri(path)
-                //.headers(header -> header.setBasicAuth(clinicRecordsFormId, clinicRecordsApikey))
                 // TODO (weskubo-cgi) Delete requests aren't working with API key
-                .header("Authorization", "Bearer " + userToken)
+                .headers(header -> header.setBasicAuth(clinicRecordsFormId, clinicRecordsApikey))
                 .retrieve()
                 .toEntity(Submission.class)
                 .block();
@@ -146,9 +142,8 @@ public class ChefsService {
         // Technically a DELETE op shouldn't have a body so we have to use .method to allow it
         return chefsWebClient.method(HttpMethod.DELETE)
                 .uri(path)
-                //.headers(header -> header.setBasicAuth(clinicRecordsFormId, clinicRecordsApikey))
                 // TODO (weskubo-cgi) Delete requests aren't working with API key
-                .header("Authorization", userToken)
+                .headers(header -> header.setBasicAuth(clinicRecordsFormId, clinicRecordsApikey))
                 .bodyValue(deleteMultipleSubmissions)
                 .retrieve()
                 .toEntityList(Submission.class)
@@ -177,8 +172,7 @@ public class ChefsService {
                 String obj = new ObjectMapper().writeValueAsString(submissionRequest);
                 logger.error("Could not process submission {}", obj);
             } catch (JsonProcessingException jpe) {
-                // TODO Auto-generated catch block
-                jpe.printStackTrace();
+                // Ignore as this is just a secondary error
             }
             throw e;
         }

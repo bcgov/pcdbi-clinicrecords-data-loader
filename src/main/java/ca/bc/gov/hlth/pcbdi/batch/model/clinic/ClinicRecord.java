@@ -1,5 +1,7 @@
 package ca.bc.gov.hlth.pcbdi.batch.model.clinic;
 
+import java.math.BigDecimal;
+
 import ca.bc.gov.hlth.pcbdi.batch.model.submission.Data;
 
 public class ClinicRecord extends Data {
@@ -18,7 +20,7 @@ public class ClinicRecord extends Data {
 
     /** Employment Details */
     private String duration;
-    private String fteEquivalent;
+    private BigDecimal fteEquivalent;
     private String paymentModality;
     private String effectiveDate;
     private String period;
@@ -118,11 +120,11 @@ public class ClinicRecord extends Data {
         this.duration = duration;
     }
 
-    public String getFteEquivalent() {
+    public BigDecimal getFteEquivalent() {
         return fteEquivalent;
     }
 
-    public void setFteEquivalent(String fteEquivalent) {
+    public void setFteEquivalent(BigDecimal fteEquivalent) {
         this.fteEquivalent = fteEquivalent;
     }
 

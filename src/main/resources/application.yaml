@@ -1,9 +1,16 @@
+spring:
+  profiles:
+    active: dev
+
 server:
   port: 9090
 file:
-  input: 
+  input:
+chunk:
+  size: 50
 chefs:
   url: https://submit.digital.gov.bc.ca/app/api/v1/
+  wait: 100
   forms:
     clinicRecords:
       formId: 
@@ -14,5 +21,3 @@ chefs:
     reportingDates:
       formId: 
       apiKey: 
-user:
-  token: 

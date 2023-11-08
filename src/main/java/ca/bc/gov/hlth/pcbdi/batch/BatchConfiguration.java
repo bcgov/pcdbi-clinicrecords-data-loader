@@ -3,14 +3,12 @@ package ca.bc.gov.hlth.pcbdi.batch;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecutionListener;
 import org.springframework.batch.core.Step;
-import org.springframework.batch.core.StepListener;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
-import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.ParseException;
 import org.springframework.batch.item.UnexpectedInputException;
 import org.springframework.batch.item.file.FlatFileItemReader;
@@ -35,6 +33,9 @@ import ca.bc.gov.hlth.pcbdi.service.ChefsService;
 
 @Configuration
 public class BatchConfiguration {
+    
+    @Value("${chunk.size:50}")
+    private Integer chunkSize;
     private static final Integer CHUNK_SIZE = 50;
 
     @Value("file:${file.input}")
@@ -96,24 +97,9 @@ public class BatchConfiguration {
         return new DeleteClinicRecordsTasklet();
     }
 
-    @Bean(name = "firstBatchJob")
+    @Bean(name = "clinicRecordsImportJob")
     public Job job(JobRepository jobRepository, JobExecutionListener listener, @Qualifier("step1") Step step1, @Qualifier("step2") Step step2) {
-        return new JobBuilder("firstBatchJob", jobRepository).preventRestart().listener(listener).start(step1).next(step2).build();
+        return new JobBuilder("clinicRecordsImportJob", jobRepository).preventRestart().listener(listener).start(step1).next(step2).build();
     }
 
-//    public JobRepository getJobRepository() throws Exception {
-//        JobRepositoryFactoryBean factory = new JobRepositoryFactoryBean();
-////        factory.setDataSource(dataSource());
-////        factory.setTransactionManager(getTransactionManager());
-//        factory.afterPropertiesSet();
-//        return factory.getObject();
-//    }
-//
-//    @Bean(name = "jobLauncher")
-//    public JobLauncher getJobLauncher() throws Exception {
-//        TaskExecutorJobLauncher jobLauncher = new TaskExecutorJobLauncher();
-//        jobLauncher.setJobRepository(getJobRepository());
-//        jobLauncher.afterPropertiesSet();
-//        return jobLauncher;
-//    }
 }

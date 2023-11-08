@@ -1,6 +1,8 @@
 package ca.bc.gov.hlth.pcbdi.batch.mapper;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,6 +31,7 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
     private static final String CLINIC_TYPE_UPCC = "Urgent and Primary Care Center (UPCC)";
 
     private static final String INITIATIVE_TYPE_CHC = "CHC";
+    private static final String INITIATIVE_TYPE_FNPCC = "FNPCC";
     private static final String INITIATIVE_TYPE_NPPCC = "NPPCC";
     private static final String INITIATIVE_TYPE_PCN = "PCN";
     private static final String INITIATIVE_TYPE_UPCC = "UPCC";
@@ -36,6 +39,8 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
     private static final Integer MINIMUM_FISCAL_YEAR = 202324;
     
     private static final String DEFAULT_INTERIM = "1";
+    
+    private static final String DATE_FORMAT = "MM/dd/yyyy";
 
     public ClinicRecordFieldSetMapper(ChefsService haService) {
         super();
@@ -71,7 +76,7 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
         String fiscalYear = transformFiscalYear(fieldSet.readString("FISCAL_YEAR"));
         record.setFiscalYear(fiscalYear);
         
-        record.setFteEquivalent(fieldSet.readString("FTE"));
+        record.setFteEquivalent(new BigDecimal(fieldSet.readString("FTE")));
 
         // Derive based on the PCN_COMMUNITY_NAME and Health Authority Hierarchy
         // submissions in CHEFS
@@ -105,11 +110,12 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
 
     private String deriveInitiativeType(String pcnClinicType, String clinicName) {
         String initiativeType = null;
-        // - if PCN_CLINIC_TYPE = "CHC" then initiativeType = "CHC"
-        // - if PCN_CLINIC_TYPE = "Urgent and Primary Care Center (UPCC)" then
-        // initiativeType = "UPCC",
-        // - if PCN_CLINIC_TYPE <> ("CHC", ""Urgent and Primary Care Center (UPCC)", "NP
-        // Clinic"), then initiativeType = "PCN"
+        // if PCN_CLINIC_TYPE = "CHC" then initiativeType = "CHC"
+        // if PCN_CLINIC_TYPE = "Urgent and Primary Care Center (UPCC)" then initiativeType = "UPCC",
+        // if PCN_CLINIC_TYPE = “NP Clinic" then initiativeType = "NPPCC"
+        // if clinicName ="Luma" then initiativeType = "FNPCC"
+        // if PCN_CLINIC_TYPE Not In ("CHC", "Urgent and Primary Care Center (UPCC)", "NP Clinic") or clinicName like "Luma", then initiativeType = "PCN" 
+
         if (StringUtils.equals(pcnClinicType, CLINIC_TYPE_CHC)) {
             initiativeType = INITIATIVE_TYPE_CHC;
         } else if (StringUtils.equals(pcnClinicType, CLINIC_TYPE_UPCC)) {
@@ -117,7 +123,7 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
         } else if (StringUtils.equals(pcnClinicType, CLINIC_TYPE_NPPCC)) {
             initiativeType = INITIATIVE_TYPE_NPPCC;
         } else if (StringUtils.equals(clinicName, CLINIC_NAME_LUMA)){
-            initiativeType = INITIATIVE_TYPE_PCN;
+            initiativeType = INITIATIVE_TYPE_FNPCC;
         } else {
             initiativeType = INITIATIVE_TYPE_PCN;
         }
@@ -152,7 +158,7 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
         ReportingDates reportingDates = opt.get();
         List<InterimReportingDate> interimDates = reportingDates.getInterimReportingDates();
 
-        LocalDate effectiveDate = LocalDate.parse(effDate);
+        LocalDate effectiveDate = LocalDate.parse(effDate, DateTimeFormatter.ofPattern(DATE_FORMAT));
         
         Optional<InterimReportingDate> optional = interimDates.stream()
                 .filter(interim -> !effectiveDate.isBefore(interim.getStartLocalDate()) && !effectiveDate.isAfter(interim.getEndLocalDate()))
@@ -168,45 +174,7 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
 
     private String transformPeriod(String period) {
         // Extract period from PCN_REPORTING_PERIOD_NAME as a number. E.g. FY23 P7 to 7
-        return StringUtils.substring(period, 6, 7);
-    }
-
-    class Interim {
-        private Integer value;
-        private LocalDate start;
-        private LocalDate end;
-
-        public Interim(Integer value, LocalDate start, LocalDate end) {
-            super();
-            this.value = value;
-            this.start = start;
-            this.end = end;
-        }
-
-        public Integer getValue() {
-            return value;
-        }
-
-        public void setValue(Integer value) {
-            this.value = value;
-        }
-
-        public LocalDate getStart() {
-            return start;
-        }
-
-        public void setStart(LocalDate start) {
-            this.start = start;
-        }
-
-        public LocalDate getEnd() {
-            return end;
-        }
-
-        public void setEnd(LocalDate end) {
-            this.end = end;
-        }
-
+        return StringUtils.substring(period, 6, 8);
     }
 
 }

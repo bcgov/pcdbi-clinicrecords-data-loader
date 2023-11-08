@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>ca.bc.gov.hlth.pcbdi</groupId>
-	<artifactId>webforms-data-loader</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<name>webforms-data-loader</name>
-	<description>PCN WebForms data loader</description>
+	<artifactId>pcdbi-clinicrecords-data-loader</artifactId>
+	<version>1.0.0</version>
+	<name>PCDBI Clinic Records Data Loader</name>
+	<description>Load data from Health Ideas into CHEFS Clinic Records form</description>
 	<properties>
 		<java.version>17</java.version>
 	</properties>
