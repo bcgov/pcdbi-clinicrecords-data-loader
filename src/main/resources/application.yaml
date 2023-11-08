@@ -1,0 +1,23 @@
+spring:
+  profiles:
+    active: dev
+
+server:
+  port: 9090
+file:
+  input:
+chunk:
+  size: 50
+chefs:
+  url: https://submit.digital.gov.bc.ca/app/api/v1/
+  wait: 100
+  forms:
+    clinicRecords:
+      formId: 
+      apiKey: 
+    haHierarchy:
+      formId: 
+      apiKey: 
+    reportingDates:
+      formId: 
+      apiKey: 
