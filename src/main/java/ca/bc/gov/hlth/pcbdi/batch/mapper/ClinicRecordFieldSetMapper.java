@@ -1,10 +1,7 @@
 package ca.bc.gov.hlth.pcbdi.batch.mapper;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.batch.core.configuration.BatchConfigurationException;
@@ -13,7 +10,6 @@ import org.springframework.batch.item.file.transform.FieldSet;
 import org.springframework.validation.BindException;
 
 import ca.bc.gov.hlth.pcbdi.batch.model.clinic.ClinicRecord;
-import ca.bc.gov.hlth.pcbdi.batch.model.financial.InterimReportingDate;
 import ca.bc.gov.hlth.pcbdi.batch.model.financial.ReportingDates;
 import ca.bc.gov.hlth.pcbdi.batch.model.ha.HaSubmission;
 import ca.bc.gov.hlth.pcbdi.service.ChefsService;
@@ -35,12 +31,6 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
     private static final String INITIATIVE_TYPE_NPPCC = "NPPCC";
     private static final String INITIATIVE_TYPE_PCN = "PCN";
     private static final String INITIATIVE_TYPE_UPCC = "UPCC";
-    
-    private static final Integer MINIMUM_FISCAL_YEAR = 202324;
-    
-    private static final String DEFAULT_INTERIM = "1";
-    
-    private static final String DATE_FORMAT = "MM/dd/yyyy";
 
     public ClinicRecordFieldSetMapper(ChefsService haService) {
         super();
@@ -83,23 +73,18 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
         String pcnCommunity = fieldSet.readString("PCN_COMMUNITY_NAME");
         record.setHealthAuthority(deriveHealthAuthority(pcnCommunity));
 
-        // Derived based on PCN_CLINIC_TYPE - Not available in HealthIdeas, needs to be
-        // derived
-        String initiativeType = deriveInitiativeType(clinicType, clinicName);
+
+        String initiativeType = fieldSet.readString("PCN_INITIATIVE_TYPE");
+        if (StringUtils.isBlank(initiativeType)) {
+            initiativeType = deriveInitiativeType(clinicType, clinicName);;
+        }
         record.setInitiativeType(initiativeType);
 
-        // Derive based on inititiativeType="CHC" and InterimDates tab?; not available
-        // yet in Webform/HealthIdeas
-        if (StringUtils.equals(initiativeType, INITIATIVE_TYPE_CHC)) {
-            record.setInterim(deriveInterim(fiscalYear, effectiveDate));    
-        } else {
-            record.setPeriod(transformPeriod(fieldSet.readString("PCN_REPORTING_PERIOD_NAME")));   
-        }
-        
         record.setNotes(fieldSet.readString("NOTES"));
         record.setPaymentModality(fieldSet.readString("PAYMENT_MODALITY"));
         record.setPcnCommunity(pcnCommunity);
         record.setPcnName(fieldSet.readString("PCN_NAME"));
+        record.setPeriod(transformPeriod(fieldSet.readString("PCN_REPORTING_PERIOD_NAME")));
         record.setPractitionerBillingNumber(fieldSet.readString("PRACTITIONER_BILLING_NUMBER"));
         record.setPractitionerName(fieldSet.readString("PRACTITIONER_NAME"));
         record.setPractitionerRole(fieldSet.readString("PRACTITIONER_TYPE"));
@@ -108,6 +93,12 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
         return record;
     }
 
+    /**
+     * Derived based on PCN_CLINIC_TYPE - Not available in HealthIdeas, needs to be derived.
+     * @param pcnClinicType
+     * @param clinicName
+     * @return
+     */
     private String deriveInitiativeType(String pcnClinicType, String clinicName) {
         String initiativeType = null;
         // if PCN_CLINIC_TYPE = "CHC" then initiativeType = "CHC"
@@ -140,31 +131,6 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
         }
 
         return healthAuthority;
-    }
-
-    private String deriveInterim(String fiscalYear, String effDate) {
-        // Older fiscal years may not have the Reporting Dates defined in CHEFS so just default the interim
-        // It's just part of a rollup anyways so the actual value doesn't matter
-        Integer fiscalYearInt = Integer.valueOf(StringUtils.remove(fiscalYear, "/"));
-        if (fiscalYearInt < MINIMUM_FISCAL_YEAR) {
-            return DEFAULT_INTERIM;
-        }
-        
-        Optional<ReportingDates> opt = reportingDates.stream().filter(reportingDate -> StringUtils.equals(reportingDate.getFiscalYear(), fiscalYear)).findAny();
-        if (opt.isEmpty()) {
-            throw new IllegalArgumentException(String.format("Fiscal Year Reporting Dates for %s not available", fiscalYear));
-        }
-        
-        ReportingDates reportingDates = opt.get();
-        List<InterimReportingDate> interimDates = reportingDates.getInterimReportingDates();
-
-        LocalDate effectiveDate = LocalDate.parse(effDate, DateTimeFormatter.ofPattern(DATE_FORMAT));
-        
-        Optional<InterimReportingDate> optional = interimDates.stream()
-                .filter(interim -> !effectiveDate.isBefore(interim.getStartLocalDate()) && !effectiveDate.isAfter(interim.getEndLocalDate()))
-                .findFirst();
-
-        return optional.isPresent() ? Integer.toString(optional.get().getInterim()) : null;
     }
 
     private String transformFiscalYear(String fiscalYear) {

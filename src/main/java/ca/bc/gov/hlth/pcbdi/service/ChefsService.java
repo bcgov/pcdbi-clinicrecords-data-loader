@@ -58,7 +58,7 @@ public class ChefsService {
     
     private String haSubmissionPath = submissionpath + "&fields=healthAuthority,communities";
     
-    private String reportingDatesSubmissionPath = submissionpath + "&fields=fiscalYear,periodReportingDates,interimReportingDates,quarterReportingDates";
+    private String reportingDatesSubmissionPath = submissionpath + "&fields=fiscalYear,periodReportingDates";
     
     private String formSubmissionPath = "forms/%s/versions/%s/submissions";
     
