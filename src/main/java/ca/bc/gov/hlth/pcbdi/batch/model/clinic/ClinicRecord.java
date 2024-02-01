@@ -24,7 +24,6 @@ public class ClinicRecord extends Data {
     private String paymentModality;
     private String effectiveDate;
     private String period;
-    private String interim;
     private String fiscalYear;
 
     private String notes;
@@ -152,14 +151,6 @@ public class ClinicRecord extends Data {
         this.period = period;
     }
 
-    public String getInterim() {
-        return interim;
-    }
-
-    public void setInterim(String interim) {
-        this.interim = interim;
-    }
-
     public String getFiscalYear() {
         return fiscalYear;
     }
@@ -190,8 +181,8 @@ public class ClinicRecord extends Data {
                 + ", pcnName=" + pcnName + ", initiativeType=" + initiativeType + ", clinicName=" + clinicName + ", clinicType="
                 + clinicType + ", practitionerName=" + practitionerName + ", practitionerBillingNumber=" + practitionerBillingNumber
                 + ", practitionerRole=" + practitionerRole + ", duration=" + duration + ", fteEquivalent=" + fteEquivalent
-                + ", paymentModality=" + paymentModality + ", effectiveDate=" + effectiveDate + ", period=" + period + ", interim="
-                + interim + ", fiscalYear=" + fiscalYear + ", notes=" + notes + ", recordType=" + recordType + "]";
+                + ", paymentModality=" + paymentModality + ", effectiveDate=" + effectiveDate + ", period=" + period + ", fiscalYear="
+                + fiscalYear + ", notes=" + notes + ", recordType=" + recordType + "]";
     }
 
 }

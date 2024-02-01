@@ -15,8 +15,6 @@ public class ReportingDates {
     public String formVersionId;
     public String fiscalYear;
     public ArrayList<PeriodReportingDate> periodReportingDates;
-    public ArrayList<InterimReportingDate> interimReportingDates;
-    public ArrayList<QuarterReportingDate> quarterReportingDates;
     public boolean lateEntry;
 
     public String getConfirmationId() {
@@ -97,22 +95,6 @@ public class ReportingDates {
 
     public void setPeriodReportingDates(ArrayList<PeriodReportingDate> periodReportingDates) {
         this.periodReportingDates = periodReportingDates;
-    }
-
-    public ArrayList<InterimReportingDate> getInterimReportingDates() {
-        return interimReportingDates;
-    }
-
-    public void setInterimReportingDates(ArrayList<InterimReportingDate> interimReportingDates) {
-        this.interimReportingDates = interimReportingDates;
-    }
-
-    public ArrayList<QuarterReportingDate> getQuarterReportingDates() {
-        return quarterReportingDates;
-    }
-
-    public void setQuarterReportingDates(ArrayList<QuarterReportingDate> quarterReportingDates) {
-        this.quarterReportingDates = quarterReportingDates;
     }
 
     public boolean isLateEntry() {
