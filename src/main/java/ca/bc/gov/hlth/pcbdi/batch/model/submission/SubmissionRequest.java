@@ -1,7 +1,7 @@
 package ca.bc.gov.hlth.pcbdi.batch.model.submission;
 
 public class SubmissionRequest {
-    private String createdBy = "pcdbi-clinicrecords-data-loader";
+    private String createdBy = "pcdbi-hr-records-data-loader";
     private Boolean draft = Boolean.FALSE;
     private Submission submission;
 
