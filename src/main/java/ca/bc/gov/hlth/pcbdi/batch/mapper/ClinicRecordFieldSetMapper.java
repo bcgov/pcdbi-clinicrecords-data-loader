@@ -1,5 +1,15 @@
 package ca.bc.gov.hlth.pcbdi.batch.mapper;
 
+import static ca.bc.gov.hlth.pcbdi.util.Constants.EMPLOYMENT_STATUS_CURRENT;
+import static ca.bc.gov.hlth.pcbdi.util.Constants.EMPLOYMENT_STATUS_DEPARTED;
+
+import static ca.bc.gov.hlth.pcbdi.util.Constants.REPORTING_LEVEL_CLINIC_INITIATIVE;
+import static ca.bc.gov.hlth.pcbdi.util.Constants.REPORTING_LEVEL_PCN;
+import static ca.bc.gov.hlth.pcbdi.util.Constants.REPORTING_LEVEL_PCN_COMMUNITY;
+
+import static ca.bc.gov.hlth.pcbdi.util.Constants.RECORD_TYPE_CURRENT_STATE;
+import static ca.bc.gov.hlth.pcbdi.util.Constants.RECORD_TYPE_DEPARTURE;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -31,17 +41,7 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
     private static final String INITIATIVE_TYPE_NPPCC = "NPPCC";
     private static final String INITIATIVE_TYPE_PCN = "PCN";
     private static final String INITIATIVE_TYPE_UPCC = "UPCC";
-    
-    private static final String EMPLOYMENT_STATUS_CURRENT = "Current";
-    private static final String EMPLOYMENT_STATUS_DEPARTED = "Departed";
-    
-    private static final String RECORD_TYPE_CURRENT_STATE = "Current State";
-    private static final String RECORD_TYPE_DEPARTURE = "Departure";
-    
-    private static final String REPORTING_LEVEL_CLINIC_INITIATIVE = "Clinic/Initiative";
-    private static final String REPORTING_LEVEL_PCN= "PCN";
-    private static final String REPORTING_LEVEL_PCN_COMMUNITY = "PCN Community";
-    
+
     private static final String PRACTITIONER_TYPE_FAMILY_PHYSICIAN = "Family Physician";
     private static final String PRACTITIONER_TYPE_NURSE_PRACTITIONER = "Nurse Practitioner";
     private static final String PRACTITIONER_TYPE_REGISTERED_NURSE = "Registered Nurse";
@@ -106,6 +106,7 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
         }
 
         detail.setLegacyWebformId(fieldSet.readString("PCN_HR_CHANGE_RECORD_ID"));
+        detail.setReferencedHrRecord(fieldSet.readString("REFERENCED_HR_RECORD"));
         detail.setPaymentModality(fieldSet.readString("PAYMENT_MODALITY"));
         detail.setEmploymentStatus(deriveEmploymentStatus(detail, fieldSet));
         detail.setPractitionerRole(practitionerType);
@@ -118,8 +119,6 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
         detail.setAdditionalGroupDetails(deriveAdditionalGroupDetails(record, practitionerName));
         detail.setDateEmploymentStatusChanged(deriveDateEmploymentStatusChanged(detail, fieldSet.readString("CHANGED_DATE")));        
         detail.setPractitionerBillingNumberNotAvailable(deriveBillingNumberNA(detail));
-        
-        System.out.println(detail);
 
         record.getClinicRecordDetails().add(detail);
 
@@ -128,7 +127,6 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
     
     private String deriveEmploymentStatus(ClinicRecordDetail detail, FieldSet fieldSet) {
     	String recordType = fieldSet.readString("RECORD_TYPE");
-    	String referencedHrRecord = fieldSet.readString("REFERENCED_HR_RECORD");
 
     	
     	if (StringUtils.equals(recordType, RECORD_TYPE_CURRENT_STATE)) {
@@ -137,7 +135,9 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
     			return EMPLOYMENT_STATUS_CURRENT;
     		}    			
         	// 2. if RECORD_TYPE = ""Current Status"" and FTE=0 and if the PCN_HR_CHANGE_RECORD_ID is not in REFERENCED_HR_RECORD , then employmentStatus = ""Current""
-    		if ((detail.getFteEquivalent() == null || detail.getFteEquivalent().compareTo(BigDecimal.ZERO) == 0 ) && !StringUtils.equals(detail.getLegacyWebformId(), referencedHrRecord)) {
+    		// XXX Ignore the third condition for now since it requires access to other records which we don't have at this point in processing
+    		// These records will be pruned in the ChefsItemWriter
+    		if (detail.getFteEquivalent() == null || detail.getFteEquivalent().compareTo(BigDecimal.ZERO) == 0) {
     			return EMPLOYMENT_STATUS_CURRENT;
     		}
     		
@@ -167,11 +167,11 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
         	// Names are typically John Doe but some are formatted as Doe, John.
 
         	if (StringUtils.contains(practitionerName, ",")) {
-        		lastName = StringUtils.substringBefore(practitionerName, ",");
-        		firstName = StringUtils.substringAfter(practitionerName, ",");
+        		lastName = StringUtils.substringBefore(practitionerName, ",").trim();
+        		firstName = StringUtils.substringAfter(practitionerName, ",").trim();
         	} else {
-        		firstName = StringUtils.substringBeforeLast(practitionerName, " ");
-        		lastName = StringUtils.substringAfterLast(practitionerName, " ");
+        		firstName = StringUtils.substringBeforeLast(practitionerName, " ").trim();
+        		lastName = StringUtils.substringAfterLast(practitionerName, " ").trim();
         	}    		
     	}
     	
