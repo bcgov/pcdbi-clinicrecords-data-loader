@@ -2,6 +2,8 @@ package ca.bc.gov.hlth.pcbdi.batch.model.clinic;
 
 import java.math.BigDecimal;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 public class ClinicRecordDetail {
 
 	private String notes;
@@ -9,10 +11,10 @@ public class ClinicRecordDetail {
 	private String duration;
 	private String dateHired;
 	private String groupRole;
-	private String speciality;
+	private String specialty;
 	private String fiscalYear;
 	private BigDecimal fteEquivalent;
-	private String otherSpeciality;
+	private String otherSpecialty;
 	private String legacyWebformId;
 	private String paymentModality;
 	private String employmentStatus;
@@ -26,6 +28,9 @@ public class ClinicRecordDetail {
 	private String additionalGroupDetails;
 	private String dateEmploymentStatusChanged;
 	private Boolean practitionerBillingNumberNotAvailable;
+
+	@JsonIgnore
+	private String referencedHrRecord;
 
 	public String getNotes() {
 		return notes;
@@ -67,12 +72,12 @@ public class ClinicRecordDetail {
 		this.groupRole = groupRole;
 	}
 
-	public String getSpeciality() {
-		return speciality;
+	public String getSpecialty() {
+		return specialty;
 	}
 
-	public void setSpeciality(String speciality) {
-		this.speciality = speciality;
+	public void setSpecialty(String specialty) {
+		this.specialty = specialty;
 	}
 
 	public String getFiscalYear() {
@@ -91,12 +96,12 @@ public class ClinicRecordDetail {
 		this.fteEquivalent = fteEquivalent;
 	}
 
-	public String getOtherSpeciality() {
-		return otherSpeciality;
+	public String getOtherSpecialty() {
+		return otherSpecialty;
 	}
 
-	public void setOtherSpeciality(String otherSpeciality) {
-		this.otherSpeciality = otherSpeciality;
+	public void setOtherSpecialty(String otherSpecialty) {
+		this.otherSpecialty = otherSpecialty;
 	}
 
 	public String getLegacyWebformId() {
@@ -203,18 +208,29 @@ public class ClinicRecordDetail {
 		this.practitionerBillingNumberNotAvailable = practitionerBillingNumberNotAvailable;
 	}
 
+	public String getReferencedHrRecord() {
+		return referencedHrRecord;
+	}
+
+	public void setReferencedHrRecord(String referencedHrRecord) {
+		this.referencedHrRecord = referencedHrRecord;
+	}
+
 	@Override
 	public String toString() {
 		return "ClinicRecordDetail [notes=" + notes + ", period=" + period + ", duration=" + duration + ", dateHired="
-				+ dateHired + ", groupRole=" + groupRole + ", speciality=" + speciality + ", fiscalYear=" + fiscalYear
-				+ ", fteEquivalent=" + fteEquivalent + ", otherSpeciality=" + otherSpeciality + ", legacyWebformId="
+				+ dateHired + ", groupRole=" + groupRole + ", specialty=" + specialty + ", fiscalYear=" + fiscalYear
+				+ ", fteEquivalent=" + fteEquivalent + ", otherSpecialty=" + otherSpecialty + ", legacyWebformId="
 				+ legacyWebformId + ", paymentModality=" + paymentModality + ", employmentStatus=" + employmentStatus
 				+ ", practitionerName=" + practitionerName + ", practitionerRole=" + practitionerRole
 				+ ", practitionerType=" + practitionerType + ", recordCreatedDate=" + recordCreatedDate
 				+ ", practitionerLastName=" + practitionerLastName + ", practitionerFirstName=" + practitionerFirstName
 				+ ", practitionerBillingNumber=" + practitionerBillingNumber + ", additionalGroupDetails="
 				+ additionalGroupDetails + ", dateEmploymentStatusChanged=" + dateEmploymentStatusChanged
-				+ ", practitionerBillingNumberNotAvailable=" + practitionerBillingNumberNotAvailable + "]";
+				+ ", practitionerBillingNumberNotAvailable=" + practitionerBillingNumberNotAvailable
+				+ ", referencedHrRecord=" + referencedHrRecord + "]";
 	}
+
+
 
 }

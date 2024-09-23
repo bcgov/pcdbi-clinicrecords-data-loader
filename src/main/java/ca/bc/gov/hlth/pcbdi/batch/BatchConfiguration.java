@@ -34,9 +34,8 @@ import ca.bc.gov.hlth.pcbdi.service.ChefsService;
 @Configuration
 public class BatchConfiguration {
     
-    @Value("${chunk.size:50}")
+    @Value("${chunk.size:500000}")
     private Integer chunkSize;
-    private static final Integer CHUNK_SIZE = 50;
 
     @Value("file:${file.input}")
     private Resource inputCsv;
@@ -83,7 +82,7 @@ public class BatchConfiguration {
 
     @Bean
     protected Step step1(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
-        return new StepBuilder("step1", jobRepository).<ClinicRecord, ClinicRecord>chunk(CHUNK_SIZE, transactionManager).reader(reader())
+        return new StepBuilder("step1", jobRepository).<ClinicRecord, ClinicRecord>chunk(chunkSize, transactionManager).reader(reader())
                 .processor(processor()).writer(writer()).listener(stepListener()).build();
     }
 
