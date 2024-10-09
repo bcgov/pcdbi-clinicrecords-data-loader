@@ -1,17 +1,21 @@
 package ca.bc.gov.hlth.pcbdi.batch.writer;
 
 import static ca.bc.gov.hlth.pcbdi.util.Constants.EMPLOYMENT_STATUS_CURRENT;
+import static ca.bc.gov.hlth.pcbdi.util.Constants.EMPLOYMENT_STATUS_DEPARTED;
 import static ca.bc.gov.hlth.pcbdi.util.Constants.REPORTING_LEVEL_CLINIC_INITIATIVE;
 import static ca.bc.gov.hlth.pcbdi.util.Constants.REPORTING_LEVEL_PCN;
 import static ca.bc.gov.hlth.pcbdi.util.Constants.REPORTING_LEVEL_PCN_COMMUNITY;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,30 +125,45 @@ public class ChefsItemWriter implements ItemWriter<ClinicRecord> {
 			parent.getClinicRecordDetails().addAll(clinic.getClinicRecordDetails());
 		}
 		
-		
-		// 2. Remove records which don't meet the following condition
-		// if RECORD_TYPE = ""Current Status"" and FTE=0 and if the PCN_HR_CHANGE_RECORD_ID is not in REFERENCED_HR_RECORD , then employmentStatus = ""Current""
 		List<ClinicRecordDetail> details = parent.getClinicRecordDetails();
+
+		// 2. Populate 'Date Hired' with the 'Effective Date' of the corresponding 'Current Record' for the records with status "Departed' (use REFERENCED_HR_RECORD to find the matching Current Record)
+		// if no current record is found, use the Effective Date of the Departed record
+		details.forEach(detail -> {
+			if (StringUtils.equals(detail.getEmploymentStatus(), EMPLOYMENT_STATUS_DEPARTED)) {
+				updateDateHired(details, detail);				
+			}
+		});
+		
 		Iterator<ClinicRecordDetail> it2 = details.iterator();
+		
+		List<ClinicRecordDetail> unmodifiedDetails = new ArrayList<>(details);
 		
 		while (it2.hasNext()) {
 			ClinicRecordDetail detail = it2.next();
-			if (StringUtils.equals(detail.getEmploymentStatus(), EMPLOYMENT_STATUS_CURRENT) && detail.getFteEquivalent().compareTo(BigDecimal.ZERO) == 0 && isClinicIdReferenced(detail, details)) {
+			// 3. Remove records which don't meet the following condition
+			// if RECORD_TYPE = "Current State" and FTE=0 and if the PCN_HR_CHANGE_RECORD_ID is not in REFERENCED_HR_RECORD , then employmentStatus = "Current"
+			if (StringUtils.equals(detail.getEmploymentStatus(), EMPLOYMENT_STATUS_CURRENT) && detail.getFteEquivalent().compareTo(BigDecimal.ZERO) == 0 && isClinicIdReferenced(detail, unmodifiedDetails)) {
+				logger.debug("Removing HR record with id {}", detail.getLegacyWebformId());
+				it2.remove();
+			}
+			// 4. Remove records that don't have a calculated Employment Status
+			else if (StringUtils.isBlank(detail.getEmploymentStatus())) {
 				it2.remove();
 			}
 		}
 		
-		// Remove records that don't have a calculated Employment Status
-		Iterator<ClinicRecordDetail> it3 = details.iterator();
-		while (it3.hasNext()) {
-			ClinicRecordDetail detail = it3.next();
-			if (StringUtils.isBlank(detail.getEmploymentStatus())) {
-				it3.remove();
-			}
-			
-		}
-		
 		return parent;
+    }
+    
+    private void updateDateHired(List<ClinicRecordDetail> details, ClinicRecordDetail detail) { 
+		Optional<ClinicRecordDetail> optional = details.stream()
+				.filter(d -> StringUtils.equals(d.getLegacyWebformId(), detail.getReferencedHrRecord()))
+				.findFirst();
+		if (optional.isPresent()) {
+			logger.debug("Populating dateHired for detail {} from {}", detail.getLegacyWebformId(), optional.get().getLegacyWebformId());
+			detail.setDateHired(optional.get().getDateHired());
+		}
     }
     
 	private Boolean isClinicIdReferenced(ClinicRecordDetail detail, List<ClinicRecordDetail> allDetails) {
@@ -168,3 +187,4 @@ public class ChefsItemWriter implements ItemWriter<ClinicRecord> {
     }
 
 }
+

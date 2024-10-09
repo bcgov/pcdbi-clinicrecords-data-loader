@@ -43,6 +43,9 @@ public class BatchConfiguration {
     @Autowired
     private ChefsService chefsService;
 
+    @Value("${spring.profiles.active}")
+    private String activeProfile;
+
     @Bean
     public ItemReader<ClinicRecord> reader() throws UnexpectedInputException, ParseException {
         FlatFileItemReader<ClinicRecord> reader = new FlatFileItemReader<ClinicRecord>();
@@ -60,7 +63,7 @@ public class BatchConfiguration {
 
         DefaultLineMapper<ClinicRecord> lineMapper = new DefaultLineMapper<ClinicRecord>();
         lineMapper.setLineTokenizer(tokenizer);
-        lineMapper.setFieldSetMapper(new ClinicRecordFieldSetMapper(chefsService));
+        lineMapper.setFieldSetMapper(new ClinicRecordFieldSetMapper(chefsService, activeProfile));
         reader.setLineMapper(lineMapper);
         return reader;
     }

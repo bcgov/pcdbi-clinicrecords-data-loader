@@ -2,17 +2,18 @@ package ca.bc.gov.hlth.pcbdi.batch.mapper;
 
 import static ca.bc.gov.hlth.pcbdi.util.Constants.EMPLOYMENT_STATUS_CURRENT;
 import static ca.bc.gov.hlth.pcbdi.util.Constants.EMPLOYMENT_STATUS_DEPARTED;
-
+import static ca.bc.gov.hlth.pcbdi.util.Constants.RECORD_TYPE_CURRENT_STATE;
+import static ca.bc.gov.hlth.pcbdi.util.Constants.RECORD_TYPE_DEPARTURE;
 import static ca.bc.gov.hlth.pcbdi.util.Constants.REPORTING_LEVEL_CLINIC_INITIATIVE;
 import static ca.bc.gov.hlth.pcbdi.util.Constants.REPORTING_LEVEL_PCN;
 import static ca.bc.gov.hlth.pcbdi.util.Constants.REPORTING_LEVEL_PCN_COMMUNITY;
 
-import static ca.bc.gov.hlth.pcbdi.util.Constants.RECORD_TYPE_CURRENT_STATE;
-import static ca.bc.gov.hlth.pcbdi.util.Constants.RECORD_TYPE_DEPARTURE;
-
 import java.math.BigDecimal;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
@@ -50,10 +51,13 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
     
     private static final Integer DATE_RANGE_MONTHS = 18;
     
-    private static final DateTimeFormatter inputDateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd"); 
+    private static final DateTimeFormatter inputDateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    
+    private String activeProfile;
 
-    public ClinicRecordFieldSetMapper(ChefsService haService) {
+    public ClinicRecordFieldSetMapper(ChefsService haService, String activeProfile) {
         super();
+        this.activeProfile = activeProfile;
         haSubmissions = haService.getHealthAuthorities().getBody();
         if (haSubmissions.isEmpty()) {
             throw new BatchConfigurationException("Health Authority Submissions not available");
@@ -117,7 +121,7 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
         
         detail.setPractitionerBillingNumber(fieldSet.readString("PRACTITIONER_BILLING_NUMBER"));
         detail.setAdditionalGroupDetails(deriveAdditionalGroupDetails(record, practitionerName));
-        detail.setDateEmploymentStatusChanged(deriveDateEmploymentStatusChanged(detail, fieldSet.readString("CHANGED_DATE")));        
+        detail.setDateEmploymentStatusChanged(deriveDateEmploymentStatusChanged(detail, fieldSet.readString("EFFECTIVE_DATE")));        
         detail.setPractitionerBillingNumberNotAvailable(deriveBillingNumberNA(detail));
 
         record.getClinicRecordDetails().add(detail);
@@ -130,11 +134,11 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
 
     	
     	if (StringUtils.equals(recordType, RECORD_TYPE_CURRENT_STATE)) {
-        	// 1. if RECORD_TYPE = ""Current State"" and FTE <> 0, then employmentStatus = ""Current"" 
+        	// 1. if RECORD_TYPE = "Current State" and FTE <> 0, then employmentStatus = "Current" 
     		if (detail.getFteEquivalent() != null && detail.getFteEquivalent().compareTo(BigDecimal.ZERO) > 0) {
     			return EMPLOYMENT_STATUS_CURRENT;
     		}    			
-        	// 2. if RECORD_TYPE = ""Current Status"" and FTE=0 and if the PCN_HR_CHANGE_RECORD_ID is not in REFERENCED_HR_RECORD , then employmentStatus = ""Current""
+        	// 2. if RECORD_TYPE = "Current State" and FTE=0 and if the PCN_HR_CHANGE_RECORD_ID is not in REFERENCED_HR_RECORD , then employmentStatus = "Current"
     		// XXX Ignore the third condition for now since it requires access to other records which we don't have at this point in processing
     		// These records will be pruned in the ChefsItemWriter
     		if (detail.getFteEquivalent() == null || detail.getFteEquivalent().compareTo(BigDecimal.ZERO) == 0) {
@@ -142,10 +146,10 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
     		}
     		
     	}
-    	// 3. if RECORD_TYPE = "Departure" and CHANGED_DATE >=Dec 01, 2022 then employmentStatus = "Departed" 
+    	// 3. if RECORD_TYPE = "Departure" and EFFECTIVE_DATE >= (Current Date - 18 months) then employmentStatus = "Departed"  
     	else if (StringUtils.equals(recordType, RECORD_TYPE_DEPARTURE)) {
         	LocalDate cutoffDate = LocalDate.now().minusMonths(DATE_RANGE_MONTHS);    	
-        	LocalDate changedDate = LocalDate.parse(fieldSet.readString("CHANGED_DATE"), inputDateFormat);
+        	LocalDate changedDate = LocalDate.parse(fieldSet.readString("EFFECTIVE_DATE"), inputDateFormat);
     		if (!changedDate.isBefore(cutoffDate)) {
     			return EMPLOYMENT_STATUS_DEPARTED;	 
     		 }
@@ -175,12 +179,32 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
         	}    		
     	}
     	
+    	// Anonymize data in the Dev environment
+    	if (StringUtils.equals(activeProfile, "dev")) {
+    		firstName = anonymize(firstName);
+    		lastName = anonymize(lastName);
+    	}
 
     	detail.setPractitionerFirstName(firstName);
     	detail.setPractitionerLastName(lastName);    	
 
     	String fullName = lastName + ", " + firstName;
+
     	detail.setPractitionerName(fullName);
+    }
+    
+    private String anonymize(String input)  {
+		try {
+			int length = input.length();
+			MessageDigest md= MessageDigest.getInstance("SHA-1");
+	    	byte[] b = md.digest(input.getBytes());
+	    	String d = Base64.getEncoder().encodeToString(b); 
+	    	
+	    	return StringUtils.substring(d, 0, length);
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+			return "";
+		}
     }
 
     /**
@@ -263,9 +287,9 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
     	return isGroup(practitionerName) ? practitionerName : null;
     }
     
-    private String deriveDateEmploymentStatusChanged(ClinicRecordDetail detail, String changedDate) {
-    	// 1. If the employmentStatus = "Departed", then dateEmploymentStatusChanged = CHANGED_DATE"
-    	return StringUtils.equals(detail.getEmploymentStatus(), EMPLOYMENT_STATUS_DEPARTED) ? changedDate : ""; 
+    private String deriveDateEmploymentStatusChanged(ClinicRecordDetail detail, String effectiveDate) {
+    	// 1. If the employmentStatus = "Departed", then dateEmploymentStatusChanged = EFFECTIVE_DATE"
+    	return StringUtils.equals(detail.getEmploymentStatus(), EMPLOYMENT_STATUS_DEPARTED) ? effectiveDate : ""; 
     }
     
     private String derivePractitionerType(String practitionerName) {
@@ -287,7 +311,7 @@ public class ClinicRecordFieldSetMapper implements FieldSetMapper<ClinicRecord> 
         return StringUtils.substring(period, 6, 8);
     }
     
-    private String transformDate(String date) {
+	private String transformDate(String date) {
     	LocalDate localDate = LocalDate.parse(date, inputDateFormat);
     	
     	return localDate.format(DateTimeFormatter.ISO_LOCAL_DATE);
